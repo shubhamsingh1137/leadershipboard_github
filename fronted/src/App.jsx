@@ -3,22 +3,22 @@ import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import Home from "./pages/Home";
-
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminHome from "./pages/admin/AdminHome";
-import CreateEmployee from "./pages/admin/CreateEmployee";
-
-import EmployeeDashboard from "./pages/EmployeeDashboard";
 import Employees from "./pages/admin/Employee";
+import EmployeeDashboard from "./pages/Employee/EmployeeDashboard";
+import EmployeeHome from "./pages/Employee/EmployeeHome";
+import Users from "./pages/Employee/Users";
 
 const App = () => {
   return (
     <AuthProvider>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
 
-        {/* ADMIN */}
+        {/* ADMIN ROUTES*/}
         <Route
           path="/admin"
           element={
@@ -28,11 +28,11 @@ const App = () => {
           }
         >
           <Route index element={<AdminHome />} />
-          <Route path="create-employee" element={<CreateEmployee />} />
+
           <Route path="employees" element={<Employees />} />
         </Route>
 
-        {/* EMPLOYEE */}
+        {/* EMPLOYEE ROUTES */}
         <Route
           path="/employee"
           element={
@@ -40,7 +40,13 @@ const App = () => {
               <EmployeeDashboard />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<EmployeeHome />} />
+
+          <Route path="user" element={<Users />} />
+        </Route>
+
+        <Route path="*" element={<div>404 - Page Not Found</div>} />
       </Routes>
     </AuthProvider>
   );

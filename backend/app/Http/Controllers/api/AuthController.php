@@ -7,10 +7,11 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    // LOGIN (Admin & Employee)
+    // LOGIN (Admin & Employee) - No Change
     public function login(Request $request)
     {
         $user = User::where('email', $request->email)->first();
@@ -28,7 +29,55 @@ class AuthController extends Controller
         ]);
     }
 
-    // ADMIN CREATE EMPLOYEE
+    // CSV IMPORT (Admin Only)
+    public function importEmployees(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:csv,txt'
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+        $data = array_map('str_getcsv', file($path));
+        $header = array_shift($data);
+
+        $importedCount = 0;
+        $errors = [];
+
+        foreach ($data as $index => $row) {
+            if (count($row) < 4)
+                continue;
+
+            $userData = [
+                'name' => $row[0],
+                'email' => $row[1],
+                'phone' => $row[2],
+                'employee_id' => $row[3],
+                'password' => Hash::make('123456'), // Default password for CSV
+                'role' => 'employee'
+            ];
+
+            $validator = Validator::make($userData, [
+                'email' => 'required|email|unique:users,email',
+                'employee_id' => 'required|unique:users,employee_id'
+            ]);
+
+            if ($validator->fails()) {
+                $errors[] = "Row " . ($index + 2) . ": " . implode(", ", $validator->errors()->all());
+                continue;
+            }
+
+            User::create($userData);
+            $importedCount++;
+        }
+
+        return response()->json([
+            'message' => "Successfully imported $importedCount employees.",
+            'errors' => $errors
+        ], 200);
+    }
+
+    // ADMIN CREATE EMPLOYEE - No Change
     public function createEmployee(Request $request)
     {
         $request->validate([
@@ -36,14 +85,14 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6',
             'phone' => 'nullable|string',
+            'employee_id' => 'nullable|string|unique:users',
             'designation' => 'nullable|string',
             'gender' => 'nullable|in:male,female,other',
             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
-
         ]);
-        $imagePath = null;
 
-        if ($request->hasFile(('profile_image'))) {
+        $imagePath = null;
+        if ($request->hasFile('profile_image')) {
             $imagePath = $request->file('profile_image')->store('employee', 'public');
         }
 
@@ -52,6 +101,7 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
+            'employee_id' => $request->employee_id,
             'designation' => $request->designation,
             'gender' => $request->gender,
             'profile_image' => $imagePath,
@@ -59,11 +109,12 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Employee created succesfully',
+            'message' => 'Employee created successfully',
             'user' => $user
         ], 201);
     }
-    // get all employee (admins only)
+
+    // GET ALL & SEARCH - No Change
     public function getAllEmployees(Request $request)
     {
         $search = $request->query('search');
@@ -74,7 +125,7 @@ class AuthController extends Controller
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
                         ->orWhere('designation', 'like', "%{$search}%")
-                        ->orWhere('id', 'like', "%{$search}%");
+                        ->orWhere('employee_id', 'like', "%{$search}%");
                 });
             })
             ->get();
@@ -84,7 +135,8 @@ class AuthController extends Controller
             'data' => $employees
         ], 200);
     }
-    //update employee
+
+    // UPDATE EMPLOYEE (Main Update here)
     public function updateEmployee(Request $request, $id)
     {
         $user = User::findOrFail($id);
@@ -92,50 +144,47 @@ class AuthController extends Controller
         $request->validate([
             'name' => 'required',
             'email' => 'required|email|unique:users,email,' . $id,
+            'password' => 'nullable|min:6', // UPDATE: password ab nullable hai (khali ho sakta hai)
             'phone' => 'nullable|string',
-            'desigantion' => 'nullable|string',
+            'employee_id' => 'nullable|string|unique:users,employee_id,' . $id,
+            'designation' => 'nullable|string',
             'gender' => 'nullable|in:male,female,other',
             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
         ]);
 
         $data = $request->except(['password', 'profile_image']);
 
-        //if password is send please update 
-        if ($request->password) {
+        // Agar admin ne password field mein kuch likha hai
+        if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
-        //image handling 
-        if ($request->hasFile('profile_image')) {
 
-            //delete old image
+        if ($request->hasFile('profile_image')) {
             if ($user->profile_image) {
                 Storage::disk('public')->delete($user->profile_image);
-
             }
             $data['profile_image'] = $request->file('profile_image')->store('employee', 'public');
-
         }
+
         $user->update($data);
 
         return response()->json([
-            'message' => 'Employee updated succesfully',
+            'message' => 'Employee updated successfully',
             'user' => $user
         ]);
     }
 
-    //delete employee
+    // DELETE EMPLOYEE - No Change
     public function deleteEmployee($id)
     {
         $user = User::findOrFail($id);
-        // delete the employee profile image 
         if ($user->profile_image) {
             Storage::disk('public')->delete($user->profile_image);
         }
-        // delete record from the database
         $user->delete();
 
         return response()->json([
-            'message' => 'employee deleted successfully from the database'
+            'message' => 'Employee deleted successfully'
         ], 200);
     }
 }

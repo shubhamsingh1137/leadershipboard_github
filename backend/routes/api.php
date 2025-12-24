@@ -12,4 +12,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/admin/employees', [AuthController::class, 'getAllEmployees']);
     Route::post('/admin/update-employee/{id}', [AuthController::class, 'updateEmployee']);
     Route::delete('/admin/delete-employee/{id}', [AuthController::class, 'deleteEmployee']);
+
+    // CSV Import
+    Route::post('/admin/import-employees', [AuthController::class, 'importEmployees']);
 });
