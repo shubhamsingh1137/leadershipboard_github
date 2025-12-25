@@ -52,11 +52,9 @@ const EmployeeDashboard = () => {
         {/* -------- TOP BAR (Enhanced for Employee) -------- */}
         <header className="shrink-0 z-30 bg-white/70 backdrop-blur-xl border-b border-slate-200/60 px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <button
-              onClick={() => navigate("/employee")}
-              className="group p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all duration-300 shadow-sm border border-indigo-100"
-            >
+            <button className="group p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all duration-300 shadow-sm border border-indigo-100">
               <FaHome
+                onClick={() => navigate("/")}
                 size={18}
                 className="group-hover:scale-110 transition-transform"
               />

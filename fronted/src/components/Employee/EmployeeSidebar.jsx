@@ -32,7 +32,7 @@ const EmployeeSidebar = () => {
           </div>
           <div>
             <h2 className="text-xl font-black tracking-tight text-white leading-tight">
-              SIMPEL
+              EMPLOYEE
             </h2>
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em] bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
               Member Portal

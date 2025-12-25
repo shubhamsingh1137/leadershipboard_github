@@ -9,6 +9,7 @@ import Employees from "./pages/admin/Employee";
 import EmployeeDashboard from "./pages/Employee/EmployeeDashboard";
 import EmployeeHome from "./pages/Employee/EmployeeHome";
 import Users from "./pages/Employee/Users";
+import AdminEmployeeGroup from "./pages/admin/AdminEmployeeGroup";
 
 const App = () => {
   return (
@@ -30,6 +31,7 @@ const App = () => {
           <Route index element={<AdminHome />} />
 
           <Route path="employees" element={<Employees />} />
+          <Route path="admin_group" element={<AdminEmployeeGroup />} />
         </Route>
 
         {/* EMPLOYEE ROUTES */}

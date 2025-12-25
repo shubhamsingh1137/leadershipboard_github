@@ -80,7 +80,7 @@ const AdminDashboard = () => {
               <div className="flex items-center gap-3 pl-2">
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-bold text-slate-800 leading-none">
-                    Super Admin
+                    Admin
                   </p>
                   <p className="text-[11px] font-medium text-indigo-500 mt-1">
                     Online
