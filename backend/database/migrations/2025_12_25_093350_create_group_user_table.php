@@ -9,9 +9,9 @@ return new class extends Migration {
     {
         Schema::create('group_user', function (Blueprint $table) {
             $table->id();
-            // Yeh line group ko connect karegi
+
             $table->foreignId('group_id')->constrained()->onDelete('cascade');
-            // Yeh line employee (user) ko connect karegi
+
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });

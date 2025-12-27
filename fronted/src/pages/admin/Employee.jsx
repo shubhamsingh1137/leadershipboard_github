@@ -135,7 +135,7 @@ const Employee = () => {
     setForm({
       name: emp.name,
       email: emp.email,
-      password: "", // Edit mode mein password field hamesha empty rahegi admin ke input ke liye
+      password: "",
       phone: emp.phone || "",
       employee_id: emp.employee_id || "",
       designation: emp.designation || "",
@@ -149,8 +149,6 @@ const Employee = () => {
     try {
       const formData = new FormData();
       Object.keys(form).forEach((key) => {
-        // UPDATE: Agar edit mode hai aur password box khali hai, toh use mat bhejo (purana password rahega)
-        // Agar admin ne naya password likha hai, toh wo bheja jayega (CSV imported users ke liye bhi yahi kaam karega)
         if (key === "password" && editMode && !form[key]) return;
         formData.append(key, form[key]);
       });

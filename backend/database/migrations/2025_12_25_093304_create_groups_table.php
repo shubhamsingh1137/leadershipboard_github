@@ -12,9 +12,9 @@ return new class extends Migration {
     {
         Schema::create('groups', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // Group ka naam (e.g., Development Team)
-            $table->string('project_name')->nullable(); // Project ka naam
-            $table->date('deadline')->nullable(); // Task ki last date
+            $table->string('name');
+            $table->string('project_name')->nullable();
+            $table->date('deadline')->nullable();
             $table->timestamps();
         });
     }
