@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    // LOGIN (Admin & Employee) - No Change
+    // --- LOGIN (Admin & Employee) ---
     public function login(Request $request)
     {
         $user = User::where('email', $request->email)->first();
@@ -24,12 +24,12 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'role' => $user->role,
+            'role' => $user->role, // System Role (admin/employee)
             'user' => $user
         ]);
     }
 
-    // CSV IMPORT (Admin Only)
+    // --- CSV IMPORT (Designation as Table Role) ---
     public function importEmployees(Request $request)
     {
         $request->validate([
@@ -39,22 +39,30 @@ class AuthController extends Controller
         $file = $request->file('file');
         $path = $file->getRealPath();
         $data = array_map('str_getcsv', file($path));
+
+        // CSV Header remove karne ke liye
         $header = array_shift($data);
 
         $importedCount = 0;
         $errors = [];
 
         foreach ($data as $index => $row) {
+            // Row validation: Name, Email, Phone, EmpID must exist
             if (count($row) < 4)
                 continue;
+
+            // Role Logic: Agar 5th column ($row[4]) me data hai toh wo 'designation' banega, 
+            // varna default 'Staff' assign hoga.
+            $designation = (!empty($row[4])) ? $row[4] : 'Staff';
 
             $userData = [
                 'name' => $row[0],
                 'email' => $row[1],
                 'phone' => $row[2],
                 'employee_id' => $row[3],
-                'password' => Hash::make('123456'), // Default password for CSV
-                'role' => 'employee'
+                'designation' => $designation, // Frontend table me 'Role' column ke liye
+                'password' => Hash::make('123456'), // Default password
+                'role' => 'employee' // System access level
             ];
 
             $validator = Validator::make($userData, [
@@ -77,7 +85,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // ADMIN CREATE EMPLOYEE - No Change
+    // --- ADMIN CREATE EMPLOYEE ---
     public function createEmployee(Request $request)
     {
         $request->validate([
@@ -86,7 +94,7 @@ class AuthController extends Controller
             'password' => 'required|min:6',
             'phone' => 'nullable|string',
             'employee_id' => 'nullable|string|unique:users',
-            'designation' => 'nullable|string',
+            'designation' => 'nullable|string', // Frontend Role field
             'gender' => 'nullable|in:male,female,other',
             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
         ]);
@@ -102,7 +110,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
             'employee_id' => $request->employee_id,
-            'designation' => $request->designation,
+            'designation' => $request->designation ?? 'Staff',
             'gender' => $request->gender,
             'profile_image' => $imagePath,
             'role' => 'employee'
@@ -114,7 +122,7 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // GET ALL & SEARCH - No Change
+    // --- GET ALL & SEARCH ---
     public function getAllEmployees(Request $request)
     {
         $search = $request->query('search');
@@ -128,6 +136,7 @@ class AuthController extends Controller
                         ->orWhere('employee_id', 'like', "%{$search}%");
                 });
             })
+            ->orderBy('created_at', 'desc') // Newest first
             ->get();
 
         return response()->json([
@@ -136,7 +145,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // UPDATE EMPLOYEE (Main Update here)
+    // --- UPDATE EMPLOYEE ---
     public function updateEmployee(Request $request, $id)
     {
         $user = User::findOrFail($id);
@@ -144,7 +153,7 @@ class AuthController extends Controller
         $request->validate([
             'name' => 'required',
             'email' => 'required|email|unique:users,email,' . $id,
-            'password' => 'nullable|min:6', // UPDATE: password ab nullable hai (khali ho sakta hai)
+            'password' => 'nullable|min:6',
             'phone' => 'nullable|string',
             'employee_id' => 'nullable|string|unique:users,employee_id,' . $id,
             'designation' => 'nullable|string',
@@ -154,7 +163,6 @@ class AuthController extends Controller
 
         $data = $request->except(['password', 'profile_image']);
 
-        // Agar admin ne password field mein kuch likha hai
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
@@ -174,7 +182,7 @@ class AuthController extends Controller
         ]);
     }
 
-    // DELETE EMPLOYEE - No Change
+    // --- DELETE EMPLOYEE ---
     public function deleteEmployee($id)
     {
         $user = User::findOrFail($id);

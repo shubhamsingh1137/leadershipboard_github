@@ -5,8 +5,8 @@ const SquadDetailModal = ({ isOpen, onClose, details }) => {
   if (!isOpen || !details) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex justify-center items-center z-[10000] p-4">
-      <div className="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex justify-center items-center z-10000 p-4">
+      <div className="bg-white w-full max-w-2xl rounded-4xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
         <div className="p-6 bg-indigo-600 text-white flex justify-between items-center">
           <div>
             <h2 className="text-xl font-black uppercase tracking-tight">

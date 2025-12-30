@@ -10,6 +10,7 @@ import EmployeeDashboard from "./pages/Employee/EmployeeDashboard";
 import EmployeeHome from "./pages/Employee/EmployeeHome";
 import Users from "./pages/Employee/Users";
 import AdminEmployeeGroup from "./pages/admin/AdminEmployeeGroup";
+import Analytics from "./pages/admin/Analytics";
 
 const App = () => {
   return (
@@ -30,7 +31,10 @@ const App = () => {
         >
           <Route index element={<AdminHome />} />
 
+          <Route path="analytics" element={<Analytics />} />
+
           <Route path="employees" element={<Employees />} />
+
           <Route path="admin_group" element={<AdminEmployeeGroup />} />
         </Route>
 

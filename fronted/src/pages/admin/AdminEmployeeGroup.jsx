@@ -5,8 +5,6 @@ import {
   FaSearch,
   FaEdit,
   FaTrashAlt,
-  FaCheckCircle,
-  FaMinusCircle,
   FaEye,
   FaFileImport,
 } from "react-icons/fa";
@@ -46,7 +44,8 @@ const AdminEmployeeGroup = () => {
       setEmployees(empRes.data.data);
       setGroups(groupRes.data.data);
     } catch (error) {
-      console.error(error);
+      console.error("Fetch Error:", error);
+      Swal.fire("Error", "Failed to load data", "error");
     } finally {
       setLoading(false);
     }
@@ -55,6 +54,74 @@ const AdminEmployeeGroup = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // === 1. CSV IMPORT LOGIC (Updated to call Backend API) ===
+  const handleCSVImport = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+          try {
+            // Frontend validation: Check if file has data
+            if (results.data.length === 0) {
+              return Swal.fire(
+                "Empty File",
+                "The CSV has no data rows.",
+                "warning"
+              );
+            }
+
+            Swal.fire({
+              title: "Importing...",
+              text: "Please wait while we process the squads",
+              allowOutsideClick: false,
+              didOpen: () => {
+                Swal.showLoading();
+              },
+            });
+
+            // Calling the backend API we just created
+            const response = await api.post("/admin/import-groups-csv", {
+              data: results.data,
+            });
+
+            Swal.fire(
+              "Success",
+              response.data.message || "Squads Imported!",
+              "success"
+            );
+            setShowImportModal(false);
+            fetchData(); // Refresh table
+          } catch (err) {
+            console.error("Import Error:", err);
+            Swal.fire(
+              "Error",
+              "Import Failed. Check CSV format (group_name, employees).",
+              "error"
+            );
+          }
+        },
+      });
+    }
+  };
+
+  const toggleStatus = async (id, currentStatus) => {
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+    try {
+      setGroups((prev) =>
+        prev.map((g) => (g.id === id ? { ...g, status: newStatus } : g))
+      );
+
+      await api.patch(`/admin/group-status/${id}`, { status: newStatus });
+    } catch (error) {
+      setGroups((prev) =>
+        prev.map((g) => (g.id === id ? { ...g, status: currentStatus } : g))
+      );
+      Swal.fire("Error", "Status Update Failed", "error");
+    }
+  };
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
@@ -65,7 +132,6 @@ const AdminEmployeeGroup = () => {
       confirmButtonColor: "#4f46e5",
       cancelButtonColor: "#ef4444",
       confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "No, keep it",
     });
 
     if (result.isConfirmed) {
@@ -76,36 +142,6 @@ const AdminEmployeeGroup = () => {
       } catch (error) {
         Swal.fire("Error", "Failed to delete the squad.", "error");
       }
-    }
-  };
-
-  const handleCSVImport = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      Papa.parse(file, {
-        header: true,
-        complete: async (results) => {
-          try {
-            await api.post("/admin/import-groups-csv", { data: results.data });
-            Swal.fire("Success", "Squads Imported!", "success");
-            fetchData();
-          } catch (err) {
-            Swal.fire("Error", "Import Failed", "error");
-          }
-        },
-      });
-    }
-  };
-
-  const toggleStatus = async (id, currentStatus) => {
-    const newStatus = currentStatus === "active" ? "inactive" : "active";
-    try {
-      await api.patch(`/admin/group-status/${id}`, { status: newStatus });
-      setGroups(
-        groups.map((g) => (g.id === id ? { ...g, status: newStatus } : g))
-      );
-    } catch (error) {
-      Swal.fire("Error", "Status Update Failed", "error");
     }
   };
 
@@ -138,11 +174,16 @@ const AdminEmployeeGroup = () => {
       if (isEditing)
         await api.put(`/admin/update-group/${currentGroupId}`, formData);
       else await api.post("/admin/create-group", formData);
+
       setShowModal(false);
       fetchData();
-      Swal.fire("Success!", "Action Completed", "success");
+      Swal.fire("Success!", "Squad data saved successfully", "success");
     } catch (error) {
-      Swal.fire("Error", "Failed", "error");
+      Swal.fire(
+        "Error",
+        "Failed to save data. Fill all required fields.",
+        "error"
+      );
     }
   };
 
@@ -154,11 +195,9 @@ const AdminEmployeeGroup = () => {
     [groups, searchTerm]
   );
 
-  // --- PREMIUM COLORFUL AVATAR LOGIC ---
   const renderSquadMembers = (employeesList) => {
     if (!employeesList || employeesList.length === 0) return null;
 
-    // Beautiful UI Colors Palette
     const colors = [
       "bg-rose-500",
       "bg-indigo-500",
@@ -168,7 +207,6 @@ const AdminEmployeeGroup = () => {
       "bg-violet-500",
       "bg-pink-500",
     ];
-
     const limit = 3;
     const displayMembers = employeesList.slice(0, limit);
     const extraCount = employeesList.length - limit;
@@ -179,7 +217,6 @@ const AdminEmployeeGroup = () => {
           let initials = "?";
           const fullName =
             emp.name || `${emp.first_name || ""} ${emp.last_name || ""}`.trim();
-
           if (fullName) {
             const parts = fullName.split(" ");
             initials =
@@ -187,15 +224,13 @@ const AdminEmployeeGroup = () => {
                 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
                 : parts[0][0].toUpperCase();
           }
-
-          // Picking a color based on the index to keep it colorful
-          const colorClass = colors[index % colors.length];
-
           return (
             <div
               key={index}
               title={fullName}
-              className={`w-9 h-9 rounded-full ${colorClass} border-2 border-white flex items-center justify-center text-[11px] font-bold text-white shadow-md uppercase shrink-0 transition-transform hover:scale-110 hover:z-30`}
+              className={`w-9 h-9 rounded-full ${
+                colors[index % colors.length]
+              } border-2 border-white flex items-center justify-center text-[11px] font-bold text-white shadow-md uppercase shrink-0 transition-transform hover:scale-110 hover:z-30`}
             >
               {initials}
             </div>
@@ -212,6 +247,7 @@ const AdminEmployeeGroup = () => {
 
   return (
     <div className="flex-1 overflow-hidden bg-slate-50 flex flex-col h-full font-sans">
+      {/* Header */}
       <div className="z-20 bg-white border-b border-slate-200 px-6 py-4 shrink-0">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4">
@@ -256,101 +292,108 @@ const AdminEmployeeGroup = () => {
         </div>
       </div>
 
+      {/* Table Section */}
       <div className="flex-1 overflow-hidden p-6">
         <div className="max-w-7xl mx-auto bg-white rounded-3xl shadow-sm border border-slate-200 h-full flex flex-col overflow-auto">
-          <table className="w-full text-left border-separate border-spacing-0">
-            <thead className="sticky top-0 bg-slate-50 z-10">
-              <tr>
-                <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase border-b">
-                  Squad Name & Members
-                </th>
-                <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase border-b">
-                  Status
-                </th>
-                <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase border-b text-center">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredGroups.map((group) => (
-                <tr
-                  key={group.id}
-                  className={`hover:bg-indigo-50/30 transition-colors ${
-                    group.status === "inactive"
-                      ? "opacity-60 grayscale-[0.5]"
-                      : ""
-                  }`}
-                >
-                  <td className="px-6 py-5">
-                    <div className="flex items-center">
-                      <span
-                        onClick={() => {
-                          setSelectedSquad(group);
-                          setShowDetailModal(true);
-                        }}
-                        className="font-black text-slate-800 uppercase text-sm cursor-pointer hover:text-indigo-600 transition-colors"
-                      >
-                        {group.name}
-                      </span>
-                      {renderSquadMembers(group.employees)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <label className="inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={group.status !== "inactive"}
-                        onChange={() =>
-                          toggleStatus(group.id, group.status || "active")
-                        }
-                      />
-                      <div className="relative w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                      <span
-                        className={`ml-3 text-[10px] font-bold uppercase ${
-                          group.status === "inactive"
-                            ? "text-rose-500"
-                            : "text-emerald-500"
-                        }`}
-                      >
-                        {group.status || "active"}
-                      </span>
-                    </label>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedSquad(group);
-                          setShowDetailModal(true);
-                        }}
-                        className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
-                        title="View"
-                      >
-                        <FaEye size={16} />
-                      </button>
-                      <button
-                        onClick={() => openModal(group)}
-                        className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
-                        title="Edit"
-                      >
-                        <FaEdit size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(group.id)}
-                        className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
-                        title="Delete"
-                      >
-                        <FaTrashAlt size={16} />
-                      </button>
-                    </div>
-                  </td>
+          {loading ? (
+            <div className="flex justify-center items-center h-full text-slate-400">
+              Loading Squads...
+            </div>
+          ) : (
+            <table className="w-full text-left border-separate border-spacing-0">
+              <thead className="sticky top-0 bg-slate-50 z-10">
+                <tr>
+                  <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase border-b">
+                    Squad Name & Members
+                  </th>
+                  <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase border-b">
+                    Status
+                  </th>
+                  <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase border-b text-center">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredGroups.length === 0 && (
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredGroups.map((group) => (
+                  <tr
+                    key={group.id}
+                    className={`hover:bg-indigo-50/30 transition-colors ${
+                      group.status === "inactive"
+                        ? "opacity-60 grayscale-[0.5]"
+                        : ""
+                    }`}
+                  >
+                    <td className="px-6 py-5">
+                      <div className="flex items-center">
+                        <span
+                          onClick={() => {
+                            setSelectedSquad(group);
+                            setShowDetailModal(true);
+                          }}
+                          className="font-black text-slate-800 uppercase text-sm cursor-pointer hover:text-indigo-600 transition-colors"
+                        >
+                          {group.name}
+                        </span>
+                        {renderSquadMembers(group.employees)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <label className="inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={group.status !== "inactive"}
+                          onChange={() =>
+                            toggleStatus(group.id, group.status || "active")
+                          }
+                        />
+                        <div className="relative w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        <span
+                          className={`ml-3 text-[10px] font-bold uppercase ${
+                            group.status === "inactive"
+                              ? "text-rose-500"
+                              : "text-emerald-500"
+                          }`}
+                        >
+                          {group.status || "active"}
+                        </span>
+                      </label>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedSquad(group);
+                            setShowDetailModal(true);
+                          }}
+                          className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                          title="View"
+                        >
+                          <FaEye size={16} />
+                        </button>
+                        <button
+                          onClick={() => openModal(group)}
+                          className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                          title="Edit"
+                        >
+                          <FaEdit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(group.id)}
+                          className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
+                          title="Delete"
+                        >
+                          <FaTrashAlt size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {!loading && filteredGroups.length === 0 && (
             <div className="p-20 text-center text-slate-400 font-medium">
               No squads found.
             </div>
@@ -358,6 +401,7 @@ const AdminEmployeeGroup = () => {
         </div>
       </div>
 
+      {/* Modals */}
       <SquadDetailModal
         isOpen={showDetailModal}
         onClose={() => setShowDetailModal(false)}

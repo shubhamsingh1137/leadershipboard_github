@@ -25,4 +25,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     // NAYE ROUTES:
     Route::put('/admin/update-group/{id}', [GroupController::class, 'updateGroup']);
     Route::delete('/admin/delete-group/{id}', [GroupController::class, 'deleteGroup']);
+
+    // Status toggle
+    Route::patch('/admin/group-status/{id}', [GroupController::class, 'updateStatus']);
+    // CSV 
+    Route::post('/admin/import-groups-csv', [GroupController::class, 'importGroupsCsv']);
+    //anlytics 
+    Route::get('/admin/analytics', [GroupController::class, 'getAnalytics']);
 });
