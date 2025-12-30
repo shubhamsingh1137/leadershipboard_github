@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-# Install system dependencies and PHP extensions
+# 1. System dependencies aur PHP extensions install karein
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
@@ -13,24 +13,26 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd pdo pdo_mysql zip xml bcmath
 
-# Enable Apache mod_rewrite
+# 2. Apache rewrite enable karein
 RUN a2enmod rewrite
 
-# Set working directory
-COPY . /var/www/html
+# 3. Working directory set karein
 WORKDIR /var/www/html
 
-# Install Composer
+# 4. BACKEND folder ka content copy karein (Ye sabse zaroori hai)
+# Kyunki aapki Dockerfile 'backend' folder ke bahar hai, isliye hume aise likhna hoga:
+COPY ./backend /var/www/html
+
+# 5. Composer install karein
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Install Laravel dependencies
-# Hum --ignore-platform-reqs use kar rahe hain taaki extensions ki wajah se build na ruke
+# 6. Dependencies install karein
 RUN composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
 
-# Set permissions
+# 7. Permissions set karein
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Update Apache config
+# 8. Apache configuration ko public folder par point karein
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
 
 EXPOSE 80
