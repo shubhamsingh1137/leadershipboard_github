@@ -3,6 +3,18 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GroupController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
+
+
+// 1. TEMPORARY MIGRATION ROUTE (Ise sabse upar rakhein)
+Route::get('/run-migrate', function () {
+    try {
+        Artisan::call('migrate', ['--force' => true]);
+        return "Migrations successful: <br><pre>" . Artisan::output() . "</pre>";
+    } catch (\Exception $e) {
+        return "Error during migration: " . $e->getMessage();
+    }
+});
 
 // Login
 Route::post('/login', [AuthController::class, 'login']);
